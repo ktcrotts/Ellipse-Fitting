@@ -1,0 +1,1 @@
+This code allows one to perform ellipse fitting to debris disk data to derive the geometry. There are two different types of ellipse fitting procedures; one for high inclined disks and one for low inclined disks. The code is currently optimized for polarized intensity data, but can be modified for total intensity given a different noise map.
