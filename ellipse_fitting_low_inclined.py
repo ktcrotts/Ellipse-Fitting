@@ -67,7 +67,7 @@ star = np.array([140, 140]) ###Enter the star x and y coordinates in your image.
 
 #Create noise map.
 radii = make_radii(Qphi, star)
-Uphi_noise = get_ann_stdmap(Uphi, star, radii_H, r_max=135) ###Define your max radius with r_max. For GPI I create a noise map out to 135 pixels.
+Uphi_noise = get_ann_stdmap(Uphi, star, radii, r_max=135) ###Define your max radius with r_max. For GPI I create a noise map out to 135 pixels.
 Uphi_noise[Uphi_noise==0.0] = np.nan #Convert 0 values to nans for noise map.
 
 
@@ -88,14 +88,14 @@ def gaus(ys,a,b,x0,sigma):
 
 
 #This function fetches the surface brightness of the disk along each radial slice.
-def prof(xl,Qphi,Uphi_noise,y1,y2):
+def prof(xl,masked_Qphi,Uphi_noise,y1,y2):
     br = []
     errs = []
     dy = y2 - y1 + 1
     ys = np.linspace(y1,y2,dy)
     for y in ys:
         int_ys = int(y)
-        intens = Qphi[(int_ys,xl)]
+        intens = masked_Qphi[(int_ys,xl)]
         err = Uphi_noise[(int_ys,xl)]
         br.append(intens)
         errs.append(err)
@@ -103,7 +103,7 @@ def prof(xl,Qphi,Uphi_noise,y1,y2):
     return br, errs
 
 #This function fits a gaussian profile to the surface brightness along radial slices of the disk.
-def gauss_fit(Qphi,Uphi_noise,PA_range,disk_PA,y1,y2,sigma_s=1):
+def gauss_fit(masked_Qphi,Uphi_noise,PA_range,disk_PA,y1,y2,sigma_s=1):
     from scipy.ndimage import zoom
     from scipy.optimize import curve_fit
     from scipy import asarray as ar,exp
@@ -111,7 +111,7 @@ def gauss_fit(Qphi,Uphi_noise,PA_range,disk_PA,y1,y2,sigma_s=1):
     import copy
     from scipy.ndimage import gaussian_filter
     
-    binned_im = gaussian_filter(Qhi, sigma=sigma_s)  ###Use gaussian filter to smooth out data. Default is sigma=1 pixel. This is often necessary, especially for noisy data. It may be difficult to get a good gaussian fit to the data if it is not smoothed to some degree.
+    binned_im = gaussian_filter(masked_Qphi, sigma=sigma_s)  ###Use gaussian filter to smooth out data. Default is sigma=1 pixel. This is often necessary, especially for noisy data. It may be difficult to get a good gaussian fit to the data if it is not smoothed to some degree.
     
     dy = y2 - y1 + 1
     ys = np.linspace(y1,y2,dy) #Creating the array of y-values for each slice. Should be big enough to encompass the entire gaussian profile.
@@ -141,7 +141,7 @@ def gauss_fit(Qphi,Uphi_noise,PA_range,disk_PA,y1,y2,sigma_s=1):
         error.append(perr[3]*2.35*pix_scale) #Caluclate the fwhm error in arcseconds.
         #Given the way we are fitting the gaussian profile (rotating the disk and taking vertical slices) the mean value and x-position of the mean are currently in polar coordinates. We need to convert them to cartesian coordinates, which is what happens below:
         rad = popt[2] - center
-        PA_rad = np.deg2rad(PA_org - i)
+        PA_rad = np.deg2rad(disk_PA - i)
         mean_cart = rad - (rad - rad*np.cos(PA_rad)) #Caclculating the mean in cartesian coordinates.
         mean_arc = mean_cart*pix_scale #Calculate the mean in arcseconds.
         means.append(mean_arc)
